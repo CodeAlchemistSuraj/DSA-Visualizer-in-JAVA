@@ -1,0 +1,19 @@
+# Build artifacts
+bin/
+dist/
+*.class
+*.exe
+*.log
+
+# IDE
+.project
+.classpath
+.settings/
+.idea/
+
+# OS
+Thumbs.db
+.DS_Store
+
+# Others
+sources.txt
