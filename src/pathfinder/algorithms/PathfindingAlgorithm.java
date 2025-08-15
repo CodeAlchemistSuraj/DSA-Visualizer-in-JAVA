@@ -1,10 +1,14 @@
 package pathfinder.algorithms;
 
-import java.util.function.Consumer;
 import pathfinder.model.Grid;
 import pathfinder.model.Node;
 
-public interface PathfindingAlgorithm {
+/**
+ * Backwards-compatible adapter interface. Existing algorithm classes implement
+ * this. New code should prefer `IPathfindingAlgorithm` for DI.
+ */
+public interface PathfindingAlgorithm extends IPathfindingAlgorithm {
+	@Override
 	void findPath(Grid grid, Node start, Node end, Runnable onStep);
 
 	default void reconstructPath(Node end) {
@@ -14,4 +18,4 @@ public interface PathfindingAlgorithm {
 			current = current.getPrevious();
 		}
 	}
-} 
+}

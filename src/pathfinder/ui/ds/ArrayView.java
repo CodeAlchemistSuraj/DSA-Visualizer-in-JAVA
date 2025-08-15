@@ -18,7 +18,10 @@ import javax.swing.SwingUtilities;
 
 public class ArrayView extends JPanel {
 	private final JLabel statusLabel = new JLabel("Ready. Use controls to modify the array.");
-	private final ArrayPanel arrayPanel = new ArrayPanel(this::setStatusText);
+	// Model and controller (refactored)
+	private final pathfinder.model.ArrayData arrayData = new pathfinder.model.ArrayData(20, 12);
+	private final pathfinder.controller.ArrayController arrayController = new pathfinder.controller.ArrayController(arrayData);
+	private final ArrayPanel arrayPanel = new ArrayPanel(this::setStatusText, arrayData);
 	private final JButton randomizeButton = new JButton("Randomize");
 	private final JButton pushButton = new JButton("Push (end)");
 	private final JButton popButton = new JButton("Pop (end)");
@@ -116,29 +119,29 @@ public class ArrayView extends JPanel {
 	}
 
 	private void wire() {
-		randomizeButton.addActionListener(e -> { arrayPanel.randomize(); setStatusText("Randomized array and length."); });
-		pushButton.addActionListener(e -> runAsync(() -> arrayPanel.push((Integer) valueSpinner.getValue(), this::delay)));
-		popButton.addActionListener(e -> runAsync(() -> arrayPanel.pop(this::delay)));
-		unshiftButton.addActionListener(e -> runAsync(() -> arrayPanel.unshift((Integer) valueSpinner.getValue(), this::delay)));
-		shiftButton.addActionListener(e -> runAsync(() -> arrayPanel.shift(this::delay)));
-		insertButton.addActionListener(e -> runAsync(() -> arrayPanel.insert((Integer) indexSpinner.getValue(), (Integer) valueSpinner.getValue(), this::delay)));
-		deleteButton.addActionListener(e -> runAsync(() -> arrayPanel.delete((Integer) indexSpinner.getValue(), this::delay)));
-		updateButton.addActionListener(e -> runAsync(() -> arrayPanel.update((Integer) indexSpinner.getValue(), (Integer) valueSpinner.getValue(), this::delay)));
+	randomizeButton.addActionListener(e -> { arrayController.randomize(10, 99, 12, 16); setStatusText("Randomized array and length."); arrayPanel.refreshFromModel(); });
+	pushButton.addActionListener(e -> runAsync(() -> { arrayController.push((Integer) valueSpinner.getValue(), this::delay); arrayPanel.refreshFromModel(); }));
+	popButton.addActionListener(e -> runAsync(() -> { arrayController.pop(this::delay); arrayPanel.refreshFromModel(); }));
+	unshiftButton.addActionListener(e -> runAsync(() -> { /* keep existing UI animation for now */ arrayPanel.unshift((Integer) valueSpinner.getValue(), this::delay); arrayPanel.refreshFromModel(); }));
+	shiftButton.addActionListener(e -> runAsync(() -> { arrayPanel.shift(this::delay); arrayPanel.refreshFromModel(); }));
+	insertButton.addActionListener(e -> runAsync(() -> { arrayController.insert((Integer) indexSpinner.getValue(), (Integer) valueSpinner.getValue(), this::delay); arrayPanel.refreshFromModel(); }));
+	deleteButton.addActionListener(e -> runAsync(() -> { arrayController.delete((Integer) indexSpinner.getValue(), this::delay); arrayPanel.refreshFromModel(); }));
+	updateButton.addActionListener(e -> runAsync(() -> { arrayController.update((Integer) indexSpinner.getValue(), (Integer) valueSpinner.getValue(), this::delay); arrayPanel.refreshFromModel(); }));
 
-		// New wiring
-		linearSearchButton.addActionListener(e -> runAsync(() -> arrayPanel.linearSearch((Integer) valueSpinner.getValue(), this::delay)));
-		binarySearchButton.addActionListener(e -> runAsync(() -> arrayPanel.binarySearch((Integer) valueSpinner.getValue(), this::delay)));
-		findMinButton.addActionListener(e -> runAsync(() -> arrayPanel.findMin(this::delay)));
-		findMaxButton.addActionListener(e -> runAsync(() -> arrayPanel.findMax(this::delay)));
-		sumButton.addActionListener(e -> runAsync(() -> arrayPanel.sum(this::delay)));
-		avgButton.addActionListener(e -> runAsync(() -> arrayPanel.average(this::delay)));
-		reverseButton.addActionListener(e -> runAsync(() -> arrayPanel.reverse(this::delay)));
-		rotateLeftButton.addActionListener(e -> runAsync(() -> arrayPanel.rotateLeft((Integer) rotateStepsSpinner.getValue(), this::delay)));
-		rotateRightButton.addActionListener(e -> runAsync(() -> arrayPanel.rotateRight((Integer) rotateStepsSpinner.getValue(), this::delay)));
-		swapButton.addActionListener(e -> runAsync(() -> arrayPanel.swap((Integer) indexSpinner.getValue(), (Integer) indexSpinner2.getValue(), this::delay)));
-		countButton.addActionListener(e -> runAsync(() -> arrayPanel.countOccurrences((Integer) valueSpinner.getValue(), this::delay)));
-		clearButton.addActionListener(e -> runAsync(() -> arrayPanel.clear(this::delay)));
-		fillButton.addActionListener(e -> runAsync(() -> arrayPanel.fill((Integer) valueSpinner.getValue(), this::delay)));
+	// New wiring (some still use ArrayPanel animations until full migration)
+	linearSearchButton.addActionListener(e -> runAsync(() -> { int idx = arrayController.linearSearch((Integer) valueSpinner.getValue()); setStatusText(idx>=0?"Found at " + idx : "Not found"); arrayPanel.refreshFromModel(); }));
+	binarySearchButton.addActionListener(e -> runAsync(() -> { int idx = arrayController.binarySearch((Integer) valueSpinner.getValue()); setStatusText(idx>=0?"Found at " + idx : "Not found"); arrayPanel.refreshFromModel(); }));
+	findMinButton.addActionListener(e -> runAsync(() -> { int idx = arrayController.findMin(); setStatusText(idx>=0?"Min at " + idx : "Empty"); arrayPanel.refreshFromModel(); }));
+	findMaxButton.addActionListener(e -> runAsync(() -> { int idx = arrayController.findMax(); setStatusText(idx>=0?"Max at " + idx : "Empty"); arrayPanel.refreshFromModel(); }));
+	sumButton.addActionListener(e -> runAsync(() -> { int s = arrayController.sum(); setStatusText("Sum = " + s); arrayPanel.refreshFromModel(); }));
+	avgButton.addActionListener(e -> runAsync(() -> { double a = arrayController.average(); setStatusText("Average = " + String.format("%.2f", a)); arrayPanel.refreshFromModel(); }));
+	reverseButton.addActionListener(e -> runAsync(() -> { arrayController.reverse(); setStatusText("Reversed"); arrayPanel.refreshFromModel(); }));
+	rotateLeftButton.addActionListener(e -> runAsync(() -> { arrayController.rotateLeft((Integer) rotateStepsSpinner.getValue()); arrayPanel.refreshFromModel(); }));
+	rotateRightButton.addActionListener(e -> runAsync(() -> { arrayController.rotateRight((Integer) rotateStepsSpinner.getValue()); arrayPanel.refreshFromModel(); }));
+	swapButton.addActionListener(e -> runAsync(() -> { arrayController.swap((Integer) indexSpinner.getValue(), (Integer) indexSpinner2.getValue()); arrayPanel.refreshFromModel(); }));
+	countButton.addActionListener(e -> runAsync(() -> { int cnt = arrayController.countOccurrences((Integer) valueSpinner.getValue()); setStatusText("Count = " + cnt); arrayPanel.refreshFromModel(); }));
+	clearButton.addActionListener(e -> runAsync(() -> { arrayController.clear(); arrayPanel.refreshFromModel(); }));
+	fillButton.addActionListener(e -> runAsync(() -> { arrayController.fill((Integer) valueSpinner.getValue()); arrayPanel.refreshFromModel(); }));
 	}
 
 	private void runAsync(Runnable r) {
@@ -185,21 +188,26 @@ public class ArrayView extends JPanel {
 		private int length = 12;
 		private final Random rnd = new Random();
 		private final Consumer<String> status;
+		private final pathfinder.model.ArrayData model;
 		private int pointerI = -1, pointerJ = -1, targetIdx = -1, highlightA = -1;
 
-		ArrayPanel(Consumer<String> status) {
+		ArrayPanel(Consumer<String> status, pathfinder.model.ArrayData model) {
 			this.status = status;
+			this.model = model;
 			setPreferredSize(new Dimension(980, 520));
-			randomize();
+			// initialize from model
+			refreshFromModel();
 		}
 
-		void randomize() {
-			length = 12 + rnd.nextInt(5);
-			for (int i = 0; i < capacity; i++) data[i] = 0;
-			for (int i = 0; i < length; i++) data[i] = rnd.nextInt(90) + 10;
+		void refreshFromModel() {
+			int[] snap = model.getSnapshot();
+			for (int i = 0; i < capacity; i++) data[i] = snap[i];
+			length = model.getLength();
 			pointerI = pointerJ = targetIdx = highlightA = -1;
 			repaintOnEDT();
 		}
+
+	void randomize() { /* migrated to model */ }
 
 		@Override
 		protected void paintComponent(Graphics g) {
