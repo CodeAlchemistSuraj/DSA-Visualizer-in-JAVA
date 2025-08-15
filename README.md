@@ -65,13 +65,5 @@ javac --release 21 -d bin -sourcepath src @filelist.txt
 - The UI is Swing-based; to test algorithm code headlessly, write small JUnit tests against classes in `src/pathfinder/algorithms` or model classes in `src/pathfinder/model`.
 
 ## License
-This project follows the original repository's licensing. Add or update a `LICENSE` file if you intend to change licensing.
+This project follows the original repository's licensing.
 
----
-
-If you want, I can:
-- Add badges and a short setup section for specific JDK versions.
-- Create a CONTRIBUTING.md and small unit tests for `ArrayData` and `BinarySearchUtil`.
-- Open a PR with the current refactor and algorithm additions.
-
-Which would you like next?
